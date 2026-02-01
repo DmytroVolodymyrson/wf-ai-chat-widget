@@ -1,0 +1,21 @@
+# API keys and credentials
+.mcp.json
+.env
+.env.*
+*.local.json
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Node modules (if any)
+node_modules/

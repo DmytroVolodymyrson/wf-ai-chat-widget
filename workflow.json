@@ -1,0 +1,119 @@
+{
+  "name": "Website Chat Widget - AI Assistant",
+  "nodes": [
+    {
+      "id": "chat-trigger",
+      "name": "Chat Trigger",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [0, 0],
+      "webhookId": "wheelsfeels-chat",
+      "parameters": {
+        "public": true,
+        "mode": "hostedChat",
+        "hostedChatNotice": "",
+        "authentication": "none",
+        "initialMessages": "Hi there! I'm Anton from WheelsFeels. How can I help you today?",
+        "options": {
+          "allowedOrigins": "http://localhost:8000,https://stage.wheelsfeels.com,https://wheelsfeels.com",
+          "inputPlaceholder": "Type your question...",
+          "showWelcomeScreen": false,
+          "subtitle": "We're here to help you 24/7",
+          "title": "Chat with WheelsFeels",
+          "responseMode": "lastNode"
+        }
+      }
+    },
+    {
+      "id": "ai-agent",
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [300, 0],
+      "parameters": {
+        "options": {
+          "systemMessage": "You are Anton, a friendly and helpful customer service specialist at WheelsFeels. WheelsFeels sells vehicle storage and sleeping systems for SUVs, trucks, and crossovers.\n\nYour role:\n- Help customers find the right storage drawers, camping systems, or accessories for their vehicle\n- Answer questions about products, shipping, warranty, and returns\n- Be friendly, professional, and conversational\n- Keep responses concise but helpful\n\nCompany info:\n- Phone: (866) 665-1911\n- Email: help@wheelsfeels.com\n- Location: Houston, TX\n- Website: wheelsfeels.com\n- Free US Shipping, Lifetime Warranty\n\nIf you don't know specific product details, offer to connect them with the team or suggest they call/email for personalized help."
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "VstQ9GjTig41qVku",
+          "name": "OpenAi WheelsFeels"
+        }
+      }
+    },
+    {
+      "id": "openai-model",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [100, 200],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1-mini"
+        },
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "VstQ9GjTig41qVku",
+          "name": "OpenAi WheelsFeels"
+        }
+      }
+    },
+    {
+      "id": "memory",
+      "name": "Window Buffer Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [200, 200],
+      "parameters": {
+        "sessionIdType": "fromInput",
+        "sessionKey": "={{ $json.sessionId }}",
+        "contextWindowLength": 10
+      }
+    }
+  ],
+  "connections": {
+    "Chat Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
