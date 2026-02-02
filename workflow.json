@@ -6,13 +6,10 @@
       "name": "Chat Trigger",
       "type": "@n8n/n8n-nodes-langchain.chatTrigger",
       "typeVersion": 1.1,
-      "position": [0, 0],
+      "position": [0, -16],
       "webhookId": "wheelsfeels-chat",
       "parameters": {
         "public": true,
-        "mode": "hostedChat",
-        "hostedChatNotice": "",
-        "authentication": "none",
         "initialMessages": "Hi there! I'm Anton from WheelsFeels. How can I help you today?",
         "options": {
           "allowedOrigins": "http://localhost:8000,https://stage.wheelsfeels.com,https://wheelsfeels.com",
@@ -29,16 +26,11 @@
       "name": "AI Agent",
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 1.7,
-      "position": [300, 0],
+      "position": [224, -112],
       "parameters": {
         "options": {
-          "systemMessage": "You are Anton, a friendly and helpful customer service specialist at WheelsFeels. WheelsFeels sells vehicle storage and sleeping systems for SUVs, trucks, and crossovers.\n\nYour role:\n- Help customers find the right storage drawers, camping systems, or accessories for their vehicle\n- Answer questions about products, shipping, warranty, and returns\n- Be friendly, professional, and conversational\n- Keep responses concise but helpful\n\nCompany info:\n- Phone: (866) 665-1911\n- Email: help@wheelsfeels.com\n- Location: Houston, TX\n- Website: wheelsfeels.com\n- Free US Shipping, Lifetime Warranty\n\nIf you don't know specific product details, offer to connect them with the team or suggest they call/email for personalized help."
-        }
-      },
-      "credentials": {
-        "openAiApi": {
-          "id": "VstQ9GjTig41qVku",
-          "name": "OpenAi WheelsFeels"
+          "systemMessage": "You are Anton, the AI Assistant for WheelsFeels.\n\n## Goals\n- Greet: \"Hi! I'm Anton\". Offer help and ask visitor's name and vehicle.\n- If visitor asks about a vehicle or product:\n   - Use the Product Lookup Tool to find matching products\n   - If match found, provide specs, price, AND product link (REQUIRED)\n   - If no direct match, say \"We have several options for [vehicle name]. Could you share your email so I can send you detailed information with photos and videos?\"\n- Prioritize collecting name and email early\n   - Ask politely: \"so we can send you more detailed information with photos and videos\"\n   - If email provided without name, ask: \"Thanks! And what's your name as well?\"\n\n## CRITICAL: Always Include Product Links\n- When mentioning ANY product, you MUST include the direct URL from Product Lookup Tool\n- If you cannot find the exact link, do NOT provide product details - ask for email instead\n\n## CRITICAL: Name Handling\n- NEVER extract names from email addresses\n- Only use a name if explicitly written in chat (e.g., \"My name is John\")\n- When acknowledging email without a name, say \"Thanks!\" not \"Thanks, [assumed name]!\"\n\n## CRITICAL: Never Say \"Can't\" or \"No\"\n- NEVER say \"we can't\" or \"not available\"\n- If asked for something not listed: \"We have several configurations. Could you share your email? Our team will reach out.\"\n- NEVER mix specs from different products\n\n## Rules\n- Answer ONLY from Product Lookup Tool results. If unsure, ask for email - never guess\n- Orders/refunds -> help@wheelsfeels.com (still collect contacts)\n- After each answer, if no contacts yet, remind to leave email\n- Keep answers under 100 words, friendly, concise\n- Act human, don't mention database or tools\n\n## Company Info\n- Phone: (866) 665-1911\n- Email: help@wheelsfeels.com\n- Location: Houston, TX\n- Website: wheelsfeels.com\n- Free US Shipping, Lifetime Warranty",
+          "returnIntermediateSteps": true
         }
       }
     },
@@ -47,21 +39,15 @@
       "name": "OpenAI Chat Model",
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.2,
-      "position": [100, 200],
+      "position": [232, 112],
       "parameters": {
         "model": {
           "__rl": true,
           "mode": "list",
-          "value": "gpt-4.1-mini"
+          "value": "gpt-4.1"
         },
         "options": {
           "temperature": 0.7
-        }
-      },
-      "credentials": {
-        "openAiApi": {
-          "id": "VstQ9GjTig41qVku",
-          "name": "OpenAi WheelsFeels"
         }
       }
     },
@@ -70,50 +56,174 @@
       "name": "Window Buffer Memory",
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.3,
-      "position": [200, 200],
+      "position": [360, 112],
       "parameters": {
-        "sessionIdType": "fromInput",
-        "sessionKey": "={{ $json.sessionId }}",
-        "contextWindowLength": 10
+        "contextWindowLength": 10,
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId.startsWith('eval-') ? $json.sessionId + '-' + $execution.id : $json.sessionId }}"
+      }
+    },
+    {
+      "id": "product-lookup-tool",
+      "name": "Product Lookup Tool",
+      "type": "@n8n/n8n-nodes-langchain.agentTool",
+      "typeVersion": 2.2,
+      "position": [488, 112],
+      "parameters": {
+        "toolDescription": "Use this tool to look up WheelsFeels products for a specific vehicle. Input should include the vehicle year, make, model, and number of doors if applicable (e.g., '2023 Subaru Outback Wilderness' or '2020 Jeep Wrangler 4-door'). Returns product details including name, type, URL, and notes.",
+        "text": "={{ $fromAI('vehicle_info', 'Vehicle details including year, make, model, doors if applicable', 'string') }}",
+        "options": {
+          "systemMessage": "You are a product lookup tool for WheelsFeels. Your job is to match customer vehicles to products using the database tools.\n\n**HOW TO SEARCH:**\n1. Extract vehicle details from the input: year, make, model, doors (2 or 4), variant (Prime, Hybrid, 4xe, etc.)\n2. Call Find Vehicle Generation tool to get the generation code for their year\n   - brand: The vehicle make (e.g., \"Subaru\", \"Toyota\", \"Jeep\")\n   - model_base: The BASE model name ONLY (e.g., \"Outback\", \"4Runner\", \"Wrangler\", \"RAV4\")\n   - year: The vehicle year (e.g., 2020)\n3. Call Search Products by Generation tool with the generation code\n   - brand: Same as above\n   - generation_code: The result from step 2 (e.g., \"Outback 6th Gen\")\n4. Return the results in the specified format\n\n**IMPORTANT: MODEL NAME STRIPPING**\nALWAYS strip trims, variants, and suffixes when calling Find Vehicle Generation.\nThe model_base parameter must be the BASE MODEL ONLY:\n- \"Outback Wilderness\" -> model_base=\"Outback\"\n- \"4Runner TRD Pro\" -> model_base=\"4Runner\"\n- \"Wrangler Rubicon\" -> model_base=\"Wrangler\"\n- \"RAV4 Prime\" -> model_base=\"RAV4\"\n\nTerms to ALWAYS strip: Wilderness, TRD Pro, TRD Off-Road, Limited, Premium, SR5, Rubicon, Sahara, Sport, Willys, XLE, Prime, Hybrid, 4xe, PHEV\n\n**CRITICAL RULES:**\n- NEVER invent or guess URLs - only return URLs from the database\n- If no generation matches, return NO_PRODUCT_FOUND\n- If no products match the generation, return NO_PRODUCT_FOUND\n\n**JEEP WRANGLER SPECIAL HANDLING:**\n- 2-door models: Look for \"JK 2-doors\", \"JL 2-doors\", or \"TJ\"\n- 4-door models: Look for \"JKU 4-doors\", \"JLU 4-doors\", or \"4xe\"\n\n**OUTPUT FORMAT:**\nIf product found: {\"status\": \"PRODUCT_FOUND\", \"product_name\": \"[from database]\", \"product_type\": \"[short description]\", \"product_url\": \"[from database]\", \"notes\": \"[any relevant notes]\"}\nIf no product found: {\"status\": \"NO_PRODUCT_FOUND\", \"vehicle\": \"[Year Make Model]\", \"reason\": \"[why no match]\"}"
+        }
+      }
+    },
+    {
+      "id": "openai-model-2",
+      "name": "OpenAI Chat Model 2",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [376, 320],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4.1"
+        },
+        "options": {
+          "temperature": 0
+        }
+      }
+    },
+    {
+      "id": "find-vehicle-generation",
+      "name": "Find Vehicle Generation",
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [504, 320],
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "vehicle_generations",
+        "limit": 5,
+        "filterType": "string",
+        "filterString": "={{ 'brand=eq.' + $fromAI('brand', 'Vehicle brand e.g. Subaru, Toyota, Jeep') + '&model_base=eq.' + $fromAI('model', 'Base model name WITHOUT trim e.g. Outback, 4Runner, Wrangler') + '&year_from=lte.' + $fromAI('year', 'Vehicle year as integer e.g. 2020') + '&year_to=gte.' + $fromAI('year', 'Vehicle year as integer e.g. 2020') }}"
+      }
+    },
+    {
+      "id": "search-products",
+      "name": "Search Products by Generation",
+      "type": "n8n-nodes-base.supabaseTool",
+      "typeVersion": 1,
+      "position": [632, 320],
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "products",
+        "limit": 10,
+        "filterType": "string",
+        "filterString": "={{ 'car_models=cs.[{\"brand\":\"' + $fromAI('brand', 'Vehicle brand e.g. Subaru, Toyota') + '\",\"model\":\"' + $fromAI('generation_code', 'Generation code from find_vehicle_generation e.g. Outback 6th Gen') + '\"}]' }}"
+      }
+    },
+    {
+      "id": "eval-trigger",
+      "name": "Evaluation Trigger",
+      "type": "n8n-nodes-base.evaluationTrigger",
+      "typeVersion": 4.7,
+      "position": [0, -208],
+      "parameters": {
+        "source": "googleSheets",
+        "documentId": {
+          "__rl": true,
+          "value": "1JClbNIx5HzN1Kt4L3voHF229eSYUETTO2zkGdWoUOLc",
+          "mode": "list",
+          "cachedResultName": "Test chatbot new"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1003179210,
+          "mode": "list",
+          "cachedResultName": "Chat Evaluation"
+        }
+      }
+    },
+    {
+      "id": "check-if-eval",
+      "name": "Check If Evaluating",
+      "type": "n8n-nodes-base.evaluation",
+      "typeVersion": 4.8,
+      "position": [856, -112],
+      "parameters": {
+        "operation": "checkIfEvaluating"
+      }
+    },
+    {
+      "id": "set-outputs",
+      "name": "Set Outputs",
+      "type": "n8n-nodes-base.evaluation",
+      "typeVersion": 4.8,
+      "position": [1080, -112],
+      "parameters": {
+        "source": "googleSheets",
+        "documentId": {
+          "__rl": true,
+          "value": "1JClbNIx5HzN1Kt4L3voHF229eSYUETTO2zkGdWoUOLc",
+          "mode": "list",
+          "cachedResultName": "Test chatbot new"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 1003179210,
+          "mode": "list",
+          "cachedResultName": "Chat Evaluation"
+        },
+        "outputs": {
+          "values": [
+            {
+              "outputName": "actual_response",
+              "outputValue": "={{ $json.output }}"
+            },
+            {
+              "outputName": "actual_tools_used",
+              "outputValue": "={{ $json.intermediateSteps ? $json.intermediateSteps.map(s => s.action.tool).join(', ') : '' }}"
+            }
+          ]
+        }
       }
     }
   ],
   "connections": {
     "Chat Trigger": {
-      "main": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
+      "main": [[{"node": "AI Agent", "type": "main", "index": 0}]]
     },
     "OpenAI Chat Model": {
-      "ai_languageModel": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_languageModel",
-            "index": 0
-          }
-        ]
-      ]
+      "ai_languageModel": [[{"node": "AI Agent", "type": "ai_languageModel", "index": 0}]]
     },
     "Window Buffer Memory": {
-      "ai_memory": [
-        [
-          {
-            "node": "AI Agent",
-            "type": "ai_memory",
-            "index": 0
-          }
-        ]
-      ]
+      "ai_memory": [[{"node": "AI Agent", "type": "ai_memory", "index": 0}]]
+    },
+    "Product Lookup Tool": {
+      "ai_tool": [[{"node": "AI Agent", "type": "ai_tool", "index": 0}]]
+    },
+    "OpenAI Chat Model 2": {
+      "ai_languageModel": [[{"node": "Product Lookup Tool", "type": "ai_languageModel", "index": 0}]]
+    },
+    "Find Vehicle Generation": {
+      "ai_tool": [[{"node": "Product Lookup Tool", "type": "ai_tool", "index": 0}]]
+    },
+    "Search Products by Generation": {
+      "ai_tool": [[{"node": "Product Lookup Tool", "type": "ai_tool", "index": 0}]]
+    },
+    "Evaluation Trigger": {
+      "main": [[{"node": "AI Agent", "type": "main", "index": 0}]]
+    },
+    "AI Agent": {
+      "main": [[{"node": "Check If Evaluating", "type": "main", "index": 0}]]
+    },
+    "Check If Evaluating": {
+      "main": [[{"node": "Set Outputs", "type": "main", "index": 0}]]
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
   }
 }
