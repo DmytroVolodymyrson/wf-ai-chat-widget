@@ -1,6 +1,6 @@
 # WheelsFeels Chat Widget - AI Assistant
 
-An n8n-powered AI chat widget for the WheelsFeels website. Provides real-time customer support using GPT-4.1-mini.
+An n8n-powered AI chat widget for the WheelsFeels website. Provides real-time customer support.
 
 ## Overview
 
@@ -91,7 +91,7 @@ For custom website integration, use the [@n8n/chat](https://www.npmjs.com/packag
 
 ## Related Projects
 
-- [wheelsfeels-chat-followup](https://github.com/DmytroVolodymyrson/wheelsfeels-chat-followup) - Tawk.to chat follow-up emails workflow
+- [wf-email-followup-automation](https://github.com/DmytroVolodymyrson/wf-email-followup-automation) - Automated AI email follow-ups from Tawk.to live chat
 
 ## License
 
