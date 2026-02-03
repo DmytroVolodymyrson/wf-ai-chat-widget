@@ -4,6 +4,12 @@
 .env.*
 *.local.json
 
+# Implementation plans and internal docs
+chat-widget-implementation-plan.md
+
+# Historical chat data (contains customer info)
+tawk.to chat examples/
+
 # Claude Code local settings
 .claude/settings.local.json
 
