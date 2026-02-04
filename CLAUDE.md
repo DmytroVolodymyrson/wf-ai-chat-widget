@@ -21,7 +21,7 @@ mcp__n8n-wheelsfeels__n8n_update_partial_workflow(id="DKfVfqHubRSwIGYT", operati
 mcp__n8n-wheelsfeels__n8n_list_workflows()
 ```
 
-## Current State (v8)
+## Current State (v11)
 
 ### Nodes (13 total)
 
@@ -55,13 +55,15 @@ Chat Trigger ────────┘         ↓                            
 - **Markdown Link Formatting**: All product links use `[Link Text](url)` format for clean display
 - **Always Ask for Year**: When customer mentions vehicle without year, Anton asks for it first
 - **Product Lookup**: Nested AI agent queries Supabase for vehicle generations and products
-- **Model Stripping**: Automatically strips trims (Wilderness, TRD Pro, etc.) for accurate matching
+- **All Products Returned**: Product Lookup Tool returns ALL matching products as an array (not just one), so customers see the full product range available for their vehicle
+- **Model Stripping**: Automatically strips trims (Wilderness, TRD Pro, etc.) and engine displacement numbers (GX460→GX, 530i→5-series) for accurate matching
+- **Product Dimensions**: Product Lookup Tool extracts dimensions from `accordion_items` (height, drawer dimensions, weight, load capacity) so Anton can answer measurement questions
 - **AI Metrics Scoring**: Built-in Correctness metric scores responses 1-5 semantically
 - **Dynamic Session Keys**: Isolates memory between evaluation runs vs production
 - **Knowledge Base**: Lead times (3-5 weeks, expedited options), discount handling, video requests
 - **Order Handling**: Asks for email first (not vehicle) when checking order status
 - **Returns & Refunds**: Directs to help@wheelsfeels.com, still collects contact info
-- **Escalation Patterns**: Collaboration/sponsorship → help@wheelsfeels.com, technical questions → email
+- **Escalation Patterns**: Collaboration/sponsorship → help@wheelsfeels.com, compatibility questions not in database → email
 - **Multilingual Support**: Responds in user's language (tested with Russian)
 - **Test Image**: Responds with test image when user asks for "test image" (for testing Markdown rendering)
 
@@ -79,13 +81,13 @@ Chat Trigger ────────┘         ↓                            
 
 - **Spreadsheet ID**: `1JClbNIx5HzN1Kt4L3voHF229eSYUETTO2zkGdWoUOLc`
 - **Sheet Name**: `Chat Evaluation`
-- **Test Cases**: 19
+- **Test Cases**: 21
 
 ### Test Categories (3 total)
 
 | Category | Description | Test Count |
 |----------|-------------|------------|
-| `product` | Vehicle lookups, unknown vehicles, missing year | 6 |
+| `product` | Vehicle lookups, unknown vehicles, missing year, Lexus/BMW model handling, dimensions | 8 |
 | `support` | Lead time, discounts, returns, orders, videos, technical, collaboration | 9 |
 | `conversation` | Greeting, email collection, multilingual | 4 |
 
