@@ -21,7 +21,7 @@ mcp__n8n-wheelsfeels__n8n_update_partial_workflow(id="DKfVfqHubRSwIGYT", operati
 mcp__n8n-wheelsfeels__n8n_list_workflows()
 ```
 
-## Current State (v11)
+## Current State (v14)
 
 ### Nodes (13 total)
 
@@ -54,18 +54,20 @@ Chat Trigger ────────┘         ↓                            
 
 - **Markdown Link Formatting**: All product links use `[Link Text](url)` format for clean display
 - **Always Ask for Year**: When customer mentions vehicle without year, Anton asks for it first
+- **Generation Handling**: Recognizes generation names (5th Gen, 6th Gen, JL/JLU) as year-known, proceeds directly to product lookup
+- **Generation-to-Year Mapping**: RAV4 5th Gen=2022, 4Runner 5th Gen=2020, Outback 6th Gen=2022, Wrangler JL/JLU=2020
+- **Model Name Normalization**: Enforces correct case (RAV4 not Rav4, 4Runner exact case) for database queries
 - **Product Lookup**: Nested AI agent queries Supabase for vehicle generations and products
-- **All Products Returned**: Product Lookup Tool returns ALL matching products as an array (not just one), so customers see the full product range available for their vehicle
-- **Model Stripping**: Automatically strips trims (Wilderness, TRD Pro, etc.) and engine displacement numbers (GX460→GX, 530i→5-series) for accurate matching
-- **Product Dimensions**: Product Lookup Tool extracts dimensions from `accordion_items` (height, drawer dimensions, weight, load capacity) so Anton can answer measurement questions
+- **All Products Returned**: Product Lookup Tool returns ALL matching products as an array (not just one)
+- **Model Stripping**: Automatically strips trims (Wilderness, TRD Pro, etc.) and engine displacement numbers (GX460→GX, 530i→5-series)
+- **Product Data Extraction**: Extracts dimensions, installation, price, delivery costs, accessories, warranty, and returns from product records
+- **Warranty & Returns**: Product Lookup Tool extracts warranty (1-year) and returns (7 days) from accordion_items
 - **AI Metrics Scoring**: Built-in Correctness metric scores responses 1-5 semantically
 - **Dynamic Session Keys**: Isolates memory between evaluation runs vs production
-- **Knowledge Base**: Lead times (3-5 weeks, expedited options), discount handling, video requests
-- **Order Handling**: Asks for email first (not vehicle) when checking order status
-- **Returns & Refunds**: Directs to help@wheelsfeels.com, still collects contact info
-- **Escalation Patterns**: Collaboration/sponsorship → help@wheelsfeels.com, compatibility questions not in database → email
-- **Multilingual Support**: Responds in user's language (tested with Russian)
-- **Test Image**: Responds with test image when user asks for "test image" (for testing Markdown rendering)
+- **Condensed Prompt**: AI Agent system message heavily condensed (~50% shorter) for efficiency
+- **Direct Email Asks**: Uses "Drop your email" style instead of permission-based asks
+- **Never Say No Match**: Never reveals "no products found" - always offers to send details via email
+- **Always Use Tool**: Must call Product Lookup Tool for ANY product question (dimensions, installation, specs, warranty, returns, etc.)
 
 ### Credentials Required
 
@@ -140,10 +142,9 @@ $json.sessionId.startsWith('eval-')
 
 ## Planned Enhancements
 
-1. **Page Context**: Pass current product page URL via `metadata` option
-2. **Slack Monitoring**: Send chat logs to Slack with threading by session
-3. **Follow-up Emails**: Trigger email follow-ups when chat sessions end
-4. **Tools Used Metric**: Add built-in Tools Used metric to track tool accuracy
+1. **Slack Monitoring**: Send chat logs to Slack with threading by session
+2. **Follow-up Emails**: Trigger email follow-ups when chat sessions end
+3. **Tools Used Metric**: Add built-in Tools Used metric to track tool accuracy
 
 ## Related Files
 
